@@ -1,6 +1,10 @@
 # splice graft 🌿
 
-This tool helps you change the default branch on a bunch of Git repos.
+This tool helps you change the default branch on a bunch of GitHub repos to
+`main` or another name. It creates a new branch using the GitHub API and sets
+the default branch to it. This tool does not change your client side git
+configs and branches, which need to be updated with `git branch -m main` and
+`git branch -u origin/main` on your clones.
 
 ## Usage
 
