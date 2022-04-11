@@ -6,12 +6,14 @@ This is a tool to do various operations on the GitHub API.
 
 ### Installation
 
-This program requires `requests`. It can be installed from pip, your distro package manager, or in a virtualenv.
+You can install for usage with `pip install --user https://github.com/lf-/splice_graft/archive/refs/heads/main.zip`
+
+or for development with `pip install --user -e .` in a clone of the repository.
 
 ### Supported operations
 
 ```
-dev/splice_graft » python splice_graft.py --help
+» python splice_graft.py --help
 usage: splice_graft.py [-h] {list,fix,find_pr,set} ...
 
 positional arguments:
