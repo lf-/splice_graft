@@ -207,7 +207,7 @@ class QueryPrFiles(Query):
                               [f['path'] for f in pr['files']['nodes']])
                 if find_existing('files.pageInfo.hasNextPage', pr):
                     log.warning(
-                        'Processed PR with >max files, some will be missing: %r %s',
+                        'Processed PR with >100 files, some will not be considered: %r %s',
                         info.title, info.url)
                 return info
 
@@ -484,7 +484,9 @@ def main():
 
     ap.set_defaults(cmd=fail)
 
-    list_parser = sps.add_parser('list')
+    list_parser = sps.add_parser(
+        'list',
+        help='List non-archived repositories with the `master` default branch')
     list_parser.add_argument('user',
                              help='User to find repos of',
                              nargs='?',
@@ -496,14 +498,16 @@ def main():
                              default=False)
     list_parser.set_defaults(cmd=cli_list)
 
-    fix_parser = sps.add_parser('fix')
+    fix_parser = sps.add_parser(
+        'fix', help='Rename the default branch for a (stdin) list of repos')
     fix_parser.add_argument('new_branch',
                             help='New branch name',
                             nargs='?',
                             default='main')
     fix_parser.set_defaults(cmd=cli_fix)
 
-    find_pr_parser = sps.add_parser('find_pr')
+    find_pr_parser = sps.add_parser(
+        'find_pr', help='Finds a pull request touching the specified files')
     find_pr_parser.add_argument('repo', help='Repo name to find prs on')
     find_pr_parser.add_argument('files_touched',
                                 help='Files touched by the PR',
@@ -521,7 +525,9 @@ def main():
                                 default=['open'])
     find_pr_parser.set_defaults(cmd=cli_find_pr)
 
-    set_parser = sps.add_parser('set')
+    set_parser = sps.add_parser(
+        'set',
+        help='Sets some attributes on a set of repositories (from stdin)')
     set_parser.add_argument('--allow-squash-merge',
                             help='Permit squash '
                             'merge on this repo',

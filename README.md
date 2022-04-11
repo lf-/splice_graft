@@ -1,14 +1,37 @@
 # splice graft 🌿
 
+This is a tool to do various operations on the GitHub API.
+
+## Usage
+
+### Installation
+
+This program requires `requests`. It can be installed from pip, your distro package manager, or in a virtualenv.
+
+### Supported operations
+
+```
+dev/splice_graft » python splice_graft.py --help
+usage: splice_graft.py [-h] {list,fix,find_pr,set} ...
+
+positional arguments:
+  {list,fix,find_pr,set}
+    list                List non-archived repositories with the `master` default branch
+    fix                 Rename the default branch for a (stdin) list of repos
+    find_pr             Finds a pull request touching the specified files
+    set                 Sets some attributes on a set of repositories (from stdin)
+
+options:
+  -h, --help            show this help message and exit
+```
+
+### Renaming branches
+
 This tool helps you change the default branch on a bunch of GitHub repos to
 `main` or another name. It creates a new branch using the GitHub API and sets
 the default branch to it. This tool does not change your client side git
 configs and branches, which need to be updated with `git branch -m main` and
 `git branch -u origin/main` on your clones.
-
-## Usage
-
-This program requires `requests`. It can be installed from pip, your distro package manager, or in a virtualenv.
 
 ```bash
 $ # Grab an access token with scope 'repos' for your GitHub user account at https://github.com/settings/tokens
