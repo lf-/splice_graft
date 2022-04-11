@@ -27,6 +27,22 @@ options:
   -h, --help            show this help message and exit
 ```
 
+### Finding a PR touching some file
+
+```
+# find any open PR touching both filename1 and filename2
+» splice-graft find_pr owner/repo filename1 filename2
+
+# find a closed or merged PR touching filename1
+» splice-graft find_pr -s closed -s merged owner/repo filename1
+
+# find a closed or merged PR touching anything under blah/
+» splice-graft find_pr -s closed -s merged -m re gankra/gankra.github.io '^blah/.*'
+
+# find a PR of any status touching anything under blah/
+» splice-graft find_pr -s any -m re gankra/gankra.github.io '^blah/.*'
+```
+
 ### Renaming branches
 
 This tool helps you change the default branch on a bunch of GitHub repos to

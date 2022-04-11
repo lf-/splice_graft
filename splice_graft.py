@@ -521,8 +521,7 @@ def main():
                                 '-s',
                                 help='PR status',
                                 choices=('open', 'closed', 'merged', 'any'),
-                                action='append',
-                                default=['open'])
+                                action='append')
     find_pr_parser.set_defaults(cmd=cli_find_pr)
 
     set_parser = sps.add_parser(
