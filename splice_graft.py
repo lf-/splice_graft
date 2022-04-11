@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import argparse
 import os
-import subprocess
 import sys
+from typing import Any
 
 import requests
 
@@ -44,7 +44,7 @@ def find(path, json):
     return ret
 
 
-def get_repos(user, curs=None):
+def get_repos(user, curs=None, any_branch=False):
     QUERY = """
     query ($who: String!, $curs: String = null) {
       user(login: $who) {
@@ -68,12 +68,13 @@ def get_repos(user, curs=None):
         'who': user,
         'curs': curs,
     }
-    res = api_query(QUERY, VARIABLES)
+    res = graphql_query(QUERY, VARIABLES)
     has_next = find('data.user.repositories.pageInfo.hasNextPage', res)
     next_curs = find('data.user.repositories.pageInfo.endCursor', res) if has_next else None
     repos = find('data.user.repositories.nodes', res)
+    assert repos
     # filter just repos that aren't fixed yet
-    repos = [repo['nameWithOwner'] for repo in repos if find('defaultBranchRef.name', repo) == REPLACING_BRANCH and not repo['isArchived']]
+    repos = [repo['nameWithOwner'] for repo in repos if (any_branch or find('defaultBranchRef.name', repo) == REPLACING_BRANCH) and not repo['isArchived']]
     return (repos, next_curs)
 
 
@@ -85,10 +86,10 @@ def get_user():
       }
     }
     """
-    return find('data.viewer.login', api_query(QUERY))
+    return find('data.viewer.login', graphql_query(QUERY))
 
 
-def api_query(query, variables={}):
+def graphql_query(query, variables={}):
     api_headers = {
         'Authorization': get_auth_header(),
     }
@@ -107,7 +108,7 @@ def cli_list(args):
     curs = None
     done = False
     while not done:
-        (repos, curs) = get_repos(user, curs=curs)
+        (repos, curs) = get_repos(user, curs=curs, any_branch=args.all)
         for repo in repos:
             print(repo)
         if curs is None:
@@ -137,7 +138,7 @@ def get_branch_info(repo, branch):
         'repoName': name,
         'branch': branch,
     }
-    res = api_query(QUERY, VARIABLES)
+    res = graphql_query(QUERY, VARIABLES)
     return (find('data.repository.id', res), find('data.repository.ref.target.oid', res))
 
 
@@ -167,23 +168,27 @@ def new_ref(repo_id, branch, tip_oid):
         'branch': branch,
         'newSha': tip_oid,
     }
-    return api_query(QUERY, VARIABLES)
+    return graphql_query(QUERY, VARIABLES)
 
 
 """
 Sets the default branch of `repo_path` to `branch`. GitHub does wacky stuff if
 you give it a canonical branch name.
 """
-def set_default_branch(repo_path, branch):
+def set_default_branch(repo_path: str, branch: str) -> requests.Response:
+    BODY = {
+        'default_branch': branch,
+    }
+    return patch_repo(repo_path, BODY)
+
+
+def patch_repo(repo_path: str, body: dict[str, Any]) -> requests.Response:
     HEADERS = {
         'Accept': 'application/vnd.github.v3+json',
         'Authorization': get_auth_header(),
     }
-    BODY = {
-        'default_branch': branch,
-    }
     # it's not supported in the v4 api :((((
-    return requests.patch('{}/repos/{}'.format(API_BASE, repo_path), json=BODY, headers=HEADERS)
+    return requests.patch('{}/repos/{}'.format(API_BASE, repo_path), json=body, headers=HEADERS)
 
 
 def cli_fix(args):
@@ -210,6 +215,23 @@ def cli_fix(args):
         eprint('Done', repo_path)
 
 
+def cli_set(args: argparse.Namespace):
+    body = {k: v for k, v in args.__dict__.items() if k != 'cmd' and v is not None}
+    for line in sys.stdin:
+        repo_path = line.rstrip()
+        eprint('PATCH repo ', repo_path, 'with', body)
+        patch_repo(repo_path, body)
+
+
+def parse_bool(s: str) -> bool:
+    s = s.lower()
+    if s in {'y', 'yes', 'true', 'on'}:
+        return True
+    elif s in {'n', 'no', 'false', 'off'}:
+        return False
+    raise ValueError(f'Could not parse {s!r} as boolean, try yes/y/true/on or no/n/false/off')
+
+
 def main():
     ap = argparse.ArgumentParser()
     sps = ap.add_subparsers()
@@ -220,11 +242,22 @@ def main():
     ap.set_defaults(cmd=fail)
 
     list_parser = sps.add_parser('list')
-    list_parser.set_defaults(cmd=cli_list)
     list_parser.add_argument('user', help='User to find repos of', nargs='?', default=None)
+    list_parser.add_argument('--all', '-a', help='List repos with any default branch', action='store_true', default=False)
+    list_parser.set_defaults(cmd=cli_list)
+
     fix_parser = sps.add_parser('fix')
     fix_parser.add_argument('new_branch', help='New branch name', nargs='?', default='main')
     fix_parser.set_defaults(cmd=cli_fix)
+
+    set_parser = sps.add_parser('set')
+    set_parser.add_argument('--allow-squash-merge', help='Permit squash '
+        'merge on this repo', default=None, type=parse_bool)
+    set_parser.add_argument('--allow-rebase-merge', help='Permit rebase '
+        'merge on this repo', default=None, type=parse_bool)
+    set_parser.add_argument('--allow-merge-commit', help='Permit merge '
+        'commits on this repo', default=None, type=parse_bool)
+    set_parser.set_defaults(cmd=cli_set)
 
     args = ap.parse_args()
     args.cmd(args)
