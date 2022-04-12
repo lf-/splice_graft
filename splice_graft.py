@@ -410,9 +410,16 @@ def set_default_branch(repo_path: str, branch: str) -> requests.Response:
     """
 
     BODY = {
-        'default_branch': branch,
+        'new_name': branch,
     }
-    return patch_repo(repo_path, BODY)
+
+    HEADERS = {
+        'Accept': 'application/vnd.github.v3+json',
+        'Authorization': get_auth_header(),
+    }
+
+    url = f'{API_BASE}/repos/{repo_path}/branches/{REPLACING_BRANCH}/rename'
+    return requests.post(url, json=BODY, headers=HEADERS)
 
 
 def patch_repo(repo_path: str, body: dict[str, Any]) -> requests.Response:
@@ -434,21 +441,10 @@ def cli_fix(args):
         repo_path = line.rstrip()
         eprint('Processing', repo_path)
 
-        # get the remote branch pointer of the branch we're fixing
-        repo_id, branch_tip = get_branch_info(repo_path, REPLACING_BRANCH)
-        eprint('>>', repo_path, REPLACING_BRANCH, 'is', branch_tip)
-
-        resp = new_ref(repo_id, new_branch, branch_tip)
-        errs = resp.get('errors')
-        if errs:
-            for err in errs:
-                eprint('Error making a new branch in {}: {}'.format(
-                    repo_path, err['message']))
-
         resp = set_default_branch(repo_path, new_branch_name)
-        if resp.status_code != 200:
-            eprint('Got error updating default branch in {}: {}'.format(
-                repo_path, resp.json()))
+        if resp.status_code < 200 or resp.status_code > 299:
+            eprint('Got error {} updating default branch in {}: {}'.format(
+                resp.status_code, repo_path, resp.json()))
         eprint('Done', repo_path)
 
 

@@ -14,12 +14,11 @@ or for development with `pip install --user -e .` in a clone of the repository.
 
 ```
 » python splice_graft.py --help
-usage: splice_graft.py [-h] {list,fix,find_pr,set} ...
+usage: splice_graft.py [-h] {list,find_pr,set} ...
 
 positional arguments:
-  {list,fix,find_pr,set}
+  {list,find_pr,set}
     list                List non-archived repositories with the `master` default branch
-    fix                 Rename the default branch for a (stdin) list of repos
     find_pr             Finds a pull request touching the specified files
     set                 Sets some attributes on a set of repositories (from stdin)
 
